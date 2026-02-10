@@ -186,10 +186,15 @@ let createRoomBtn, joinRoomBtn, createRoomModal, joinRoomModal;
 let newRoomName, newRoomPassword, joinRoomName, joinRoomPassword;
 let messageInput, sendMessageBtn, messagesList, leaveRoomBtn;
 let currentRoomName, currentRoomBadge;
+let usernameModal, usernameInput, confirmUsernameBtn;
 
 // Chat State
-let chatRooms = [];
+let chatRooms = {}; // Changed to object for Firebase
 let currentRoom = null;
+let currentRoomId = null;
+let username = '';
+let roomsListener = null;
+let messagesListener = null;
 
 // Initialize Chat Elements
 function initChatElements() {
@@ -213,14 +218,43 @@ function initChatElements() {
     leaveRoomBtn = document.getElementById('leaveRoomBtn');
     currentRoomName = document.getElementById('currentRoomName');
     currentRoomBadge = document.getElementById('currentRoomBadge');
+    usernameModal = document.getElementById('usernameModal');
+    usernameInput = document.getElementById('usernameInput');
+    confirmUsernameBtn = document.getElementById('confirmUsername');
 }
 
 // Activate Secret Chat
 function activateSecretChat() {
     if (!chatContainer) initChatElements();
 
+    // Check if username exists in session
+    username = sessionStorage.getItem('chatUsername');
+
+    if (!username) {
+        // Show username modal
+        openModal(usernameModal);
+        confirmUsernameBtn.addEventListener('click', () => {
+            const name = usernameInput.value.trim();
+            if (name) {
+                username = name;
+                sessionStorage.setItem('chatUsername', username);
+                closeModal(usernameModal);
+                proceedToChat();
+            } else {
+                usernameInput.style.animation = 'shake 0.3s ease';
+                setTimeout(() => usernameInput.style.animation = '', 300);
+            }
+        });
+        usernameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') confirmUsernameBtn.click();
+        });
+    } else {
+        proceedToChat();
+    }
+}
+
+function proceedToChat() {
     loadChatRooms();
-    renderRooms();
 
     // Slide out todo, slide in chat
     todoContainer.style.animation = 'slideOutLeft 0.5s ease forwards';
@@ -250,7 +284,12 @@ function setupChatEventListeners() {
     });
 
     leaveRoomBtn.addEventListener('click', () => {
+        // Remove message listener
+        if (messagesListener && currentRoomId) {
+            window.firebaseDB.ref(`rooms/${currentRoomId}/messages`).off('value', messagesListener);
+        }
         currentRoom = null;
+        currentRoomId = null;
         chatView.style.display = 'none';
         roomSelection.style.display = 'block';
     });
@@ -277,16 +316,18 @@ function closeModal(modal) {
     setTimeout(() => modal.style.display = 'none', 300);
 }
 
-// Local Storage for Chat
-function saveChatRooms() {
-    localStorage.setItem('chatRooms', JSON.stringify(chatRooms));
-}
-
+// Firebase Real-time Database for Chat
 function loadChatRooms() {
-    const stored = localStorage.getItem('chatRooms');
-    if (stored) {
-        chatRooms = JSON.parse(stored);
+    // Remove old listener if exists
+    if (roomsListener) {
+        window.firebaseDB.ref('rooms').off('value', roomsListener);
     }
+
+    // Listen for real-time updates to rooms
+    roomsListener = window.firebaseDB.ref('rooms').on('value', (snapshot) => {
+        chatRooms = snapshot.val() || {};
+        renderRooms();
+    });
 }
 
 // Create Room
@@ -300,28 +341,32 @@ function createRoom() {
     }
 
     // Check if room exists
-    if (chatRooms.find(r => r.name === name)) {
+    const roomExists = Object.values(chatRooms).some(r => r.name === name);
+    if (roomExists) {
         alert('Room with this name already exists');
         return;
     }
 
+    // Create new room in Firebase
+    const newRoomRef = window.firebaseDB.ref('rooms').push();
+    const roomId = newRoomRef.key;
+
     const room = {
         name: name,
         password: password,
-        messages: [],
         createdAt: new Date().toISOString()
     };
 
-    chatRooms.push(room);
-    saveChatRooms();
-    renderRooms();
+    newRoomRef.set(room).then(() => {
+        newRoomName.value = '';
+        newRoomPassword.value = '';
+        closeModal(createRoomModal);
 
-    newRoomName.value = '';
-    newRoomPassword.value = '';
-    closeModal(createRoomModal);
-
-    // Auto-enter the room
-    enterRoom(room);
+        // Auto-enter the room
+        enterRoom(roomId, room);
+    }).catch((error) => {
+        alert('Error creating room: ' + error.message);
+    });
 }
 
 // Join Room
@@ -334,14 +379,24 @@ function joinRoom() {
         return;
     }
 
-    const room = chatRooms.find(r => r.name === name);
+    // Find room by name
+    let foundRoomId = null;
+    let foundRoom = null;
 
-    if (!room) {
+    for (const [roomId, room] of Object.entries(chatRooms)) {
+        if (room.name === name) {
+            foundRoomId = roomId;
+            foundRoom = room;
+            break;
+        }
+    }
+
+    if (!foundRoom) {
         alert('Room not found');
         return;
     }
 
-    if (room.password !== password) {
+    if (foundRoom.password !== password) {
         alert('Incorrect password');
         return;
     }
@@ -350,41 +405,58 @@ function joinRoom() {
     joinRoomPassword.value = '';
     closeModal(joinRoomModal);
 
-    enterRoom(room);
+    enterRoom(foundRoomId, foundRoom);
 }
 
 // Enter Room
-function enterRoom(room) {
+function enterRoom(roomId, room) {
+    currentRoomId = roomId;
     currentRoom = room;
     currentRoomName.textContent = room.name;
 
     roomSelection.style.display = 'none';
     chatView.style.display = 'flex';
 
-    renderMessages();
+    // Remove old message listener if exists
+    if (messagesListener) {
+        window.firebaseDB.ref(`rooms/${currentRoomId}/messages`).off('value', messagesListener);
+    }
+
+    // Listen for real-time messages
+    messagesListener = window.firebaseDB.ref(`rooms/${roomId}/messages`).on('value', (snapshot) => {
+        const messages = snapshot.val();
+        renderMessages(messages);
+    });
+
     messageInput.focus();
 }
 
 // Render Rooms
 function renderRooms() {
-    if (chatRooms.length === 0) {
+    const roomsArray = Object.entries(chatRooms);
+
+    if (roomsArray.length === 0) {
         roomsContainer.innerHTML = '<p class="no-rooms">No rooms yet. Create one to get started!</p>';
         return;
     }
 
     roomsContainer.innerHTML = '';
-    chatRooms.forEach(room => {
+    roomsArray.forEach(([roomId, room]) => {
         const roomCard = document.createElement('div');
         roomCard.className = 'room-card';
+
+        // Count messages
+        const messageCount = room.messages ? Object.keys(room.messages).length : 0;
+
         roomCard.innerHTML = `
             <div class="room-card-header">
                 <h4>${room.name}</h4>
-                <span class="room-message-count">${room.messages.length} messages</span>
+                <span class="room-message-count">${messageCount} messages</span>
             </div>
             <button class="enter-room-btn">Enter</button>
         `;
 
-        roomCard.querySelector('.enter-room-btn').addEventListener('click', () => enterRoom(room));
+        roomCard.querySelector('.enter-room-btn').addEventListener('click', () => enterRoom(roomId, room));
         roomsContainer.appendChild(roomCard);
     });
 }
@@ -393,42 +465,55 @@ function renderRooms() {
 function sendMessage() {
     const text = messageInput.value.trim();
 
-    if (!text || !currentRoom) return;
+    if (!text || !currentRoomId) return;
 
     const message = {
-        id: Date.now(),
         text: text,
         timestamp: new Date().toISOString(),
-        sender: 'You'
+        sender: username
     };
 
-    currentRoom.messages.push(message);
-    saveChatRooms();
-    renderMessages();
-
-    messageInput.value = '';
-    messageInput.focus();
+    // Push message to Firebase
+    window.firebaseDB.ref(`rooms/${currentRoomId}/messages`).push(message)
+        .then(() => {
+            messageInput.value = '';
+            messageInput.focus();
+        })
+        .catch((error) => {
+            alert('Error sending message: ' + error.message);
+        });
 }
 
 // Render Messages
-function renderMessages() {
-    if (!currentRoom) return;
+function renderMessages(messages) {
+    if (!messages) {
+        messagesList.innerHTML = '<p class="no-messages">No messages yet. Start the conversation!</p>';
+        return;
+    }
 
-    if (currentRoom.messages.length === 0) {
+    const messagesArray = Object.values(messages);
+
+    if (messagesArray.length === 0) {
         messagesList.innerHTML = '<p class="no-messages">No messages yet. Start the conversation!</p>';
         return;
     }
 
     messagesList.innerHTML = '';
-    currentRoom.messages.forEach(msg => {
+    messagesArray.forEach(msg => {
         const msgDiv = document.createElement('div');
         msgDiv.className = 'message';
 
         const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+        // Highlight own messages
+        const isOwnMessage = msg.sender === username;
+        if (isOwnMessage) {
+            msgDiv.classList.add('own-message');
+        }
+
         msgDiv.innerHTML = `
             <div class="message-header">
-                <span class="message-sender">${msg.sender}</span>
+                <span class="message-sender">${msg.sender}${isOwnMessage ? ' (You)' : ''}</span>
                 <span class="message-time">${time}</span>
             </div>
             <div class="message-text">${msg.text}</div>

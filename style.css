@@ -728,6 +728,16 @@ body {
     padding: 40px 20px;
 }
 
+/* Own Message Styling */
+.message.own-message {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(118, 75, 162, 0.2));
+    border-color: rgba(102, 126, 234, 0.3);
+}
+
+.message.own-message .message-sender {
+    color: #a8b5ff;
+}
+
 /* Message Input */
 .message-input-container {
     display: flex;

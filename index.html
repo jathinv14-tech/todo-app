@@ -115,6 +115,27 @@
         </div>
     </div>
 
+    <!-- Username Modal -->
+    <div class="modal" id="usernameModal">
+        <div class="modal-content">
+            <h3>Enter Your Name</h3>
+            <p style="font-size: 0.9rem; color: rgba(255,255,255,0.7); margin-bottom: 1rem;">Choose a display name for
+                the chat</p>
+            <input type="text" id="usernameInput" placeholder="Your name" autocomplete="off" maxlength="20">
+            <div class="modal-actions">
+                <button class="modal-btn confirm-btn" id="confirmUsername">Continue</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <!-- Firebase Configuration -->
+    <script src="firebase-config.js"></script>
+
+    <!-- Main Application Script -->
     <script src="script.js"></script>
 </body>
 
