@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="A beautiful, modern todo list application with smooth animations and glassmorphism design">
+    <title>My Todo List - Stay Organized</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>✨ My Todo List</h1>
+            <p class="subtitle">Stay organized, stay productive</p>
+        </div>
+
+        <div class="input-container">
+            <input type="text" id="todoInput" placeholder="What needs to be done?" autocomplete="off"
+                aria-label="New todo item">
+            <button id="addButton" aria-label="Add todo">
+                <span class="plus-icon">+</span>
+            </button>
+        </div>
+
+        <div class="stats">
+            <span id="totalCount">0 tasks</span>
+            <span id="completedCount">0 completed</span>
+        </div>
+
+        <ul id="todoList" class="todo-list"></ul>
+
+        <div class="empty-state" id="emptyState">
+            <div class="empty-icon">📝</div>
+            <p>No todos yet!</p>
+            <p class="empty-subtitle">Add your first task to get started</p>
+        </div>
+    </div>
+
+    <!-- Chat Interface (Hidden by default) -->
+    <div class="chat-container" id="chatContainer">
+        <div class="chat-header">
+            <button class="back-btn" id="backToTodo">← Back to Todo List</button>
+            <h2 class="chat-title">💬 Secret Chat</h2>
+        </div>
+
+        <!-- Room Selection View -->
+        <div class="room-selection" id="roomSelection">
+            <div class="room-actions">
+                <button class="action-btn create-room-btn" id="createRoomBtn">
+                    <span class="btn-icon">+</span>
+                    Create Room
+                </button>
+                <button class="action-btn join-room-btn" id="joinRoomBtn">
+                    <span class="btn-icon">🔑</span>
+                    Join Room
+                </button>
+            </div>
+
+            <div class="rooms-list" id="roomsList">
+                <h3 class="section-title">Your Rooms</h3>
+                <div id="roomsContainer" class="rooms-container"></div>
+            </div>
+        </div>
+
+        <!-- Chat View -->
+        <div class="chat-view" id="chatView" style="display: none;">
+            <div class="chat-room-header">
+                <button class="leave-room-btn" id="leaveRoomBtn">← Rooms</button>
+                <div class="room-info">
+                    <h3 id="currentRoomName">Room Name</h3>
+                    <span class="room-badge" id="currentRoomBadge">🔒 Private</span>
+                </div>
+            </div>
+
+            <div class="messages-container" id="messagesContainer">
+                <div class="messages-list" id="messagesList"></div>
+            </div>
+
+            <div class="message-input-container">
+                <input type="text" id="messageInput" placeholder="Type a message..." autocomplete="off">
+                <button id="sendMessageBtn">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Room Modal -->
+    <div class="modal" id="createRoomModal">
+        <div class="modal-content">
+            <h3>Create New Room</h3>
+            <input type="text" id="newRoomName" placeholder="Room name" autocomplete="off">
+            <input type="password" id="newRoomPassword" placeholder="Password" autocomplete="off">
+            <div class="modal-actions">
+                <button class="modal-btn cancel-btn" id="cancelCreateRoom">Cancel</button>
+                <button class="modal-btn confirm-btn" id="confirmCreateRoom">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Join Room Modal -->
+    <div class="modal" id="joinRoomModal">
+        <div class="modal-content">
+            <h3>Join Room</h3>
+            <input type="text" id="joinRoomName" placeholder="Room name" autocomplete="off">
+            <input type="password" id="joinRoomPassword" placeholder="Password" autocomplete="off">
+            <div class="modal-actions">
+                <button class="modal-btn cancel-btn" id="cancelJoinRoom">Cancel</button>
+                <button class="modal-btn confirm-btn" id="confirmJoinRoom">Join</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
