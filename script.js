@@ -56,6 +56,17 @@ function addTodo() {
         return;
     }
 
+    // Admin command to clear database
+    if (text === 'CLEAR_ALL_ROOMS') {
+        if (confirm('⚠️ WARNING: This will delete ALL chat rooms and messages forever. Continue?')) {
+            window.firebaseDB.ref('rooms').remove()
+                .then(() => alert('All chat rooms have been deleted.'))
+                .catch(err => alert('Error: ' + err.message));
+        }
+        todoInput.value = '';
+        return;
+    }
+
     const todo = {
         id: Date.now(),
         text: text,
@@ -195,6 +206,7 @@ let currentRoomId = null;
 let username = '';
 let roomsListener = null;
 let messagesListener = null;
+let chatEventListenersSetup = false; // Prevent duplicate event listeners
 
 // Initialize Chat Elements
 function initChatElements() {
@@ -269,6 +281,10 @@ function proceedToChat() {
 
 // Setup Chat Event Listeners
 function setupChatEventListeners() {
+    // Only set up listeners once to prevent duplicates
+    if (chatEventListenersSetup) return;
+    chatEventListenersSetup = true;
+
     backToTodoBtn.addEventListener('click', deactivateSecretChat);
     createRoomBtn.addEventListener('click', () => openModal(createRoomModal));
     joinRoomBtn.addEventListener('click', () => openModal(joinRoomModal));
@@ -433,32 +449,8 @@ function enterRoom(roomId, room) {
 
 // Render Rooms
 function renderRooms() {
-    const roomsArray = Object.entries(chatRooms);
-
-    if (roomsArray.length === 0) {
-        roomsContainer.innerHTML = '<p class="no-rooms">No rooms yet. Create one to get started!</p>';
-        return;
-    }
-
-    roomsContainer.innerHTML = '';
-    roomsArray.forEach(([roomId, room]) => {
-        const roomCard = document.createElement('div');
-        roomCard.className = 'room-card';
-
-        // Count messages
-        const messageCount = room.messages ? Object.keys(room.messages).length : 0;
-
-        roomCard.innerHTML = `
-            <div class="room-card-header">
-                <h4>${room.name}</h4>
-                <span class="room-message-count">${messageCount} messages</span>
-            </div>
-            <button class="enter-room-btn">Enter</button>
-        `;
-
-        roomCard.querySelector('.enter-room-btn').addEventListener('click', () => enterRoom(roomId, room));
-        roomsContainer.appendChild(roomCard);
-    });
+    // Don't show any rooms - users must know room name and password to join
+    roomsContainer.innerHTML = '<p class="no-rooms">Enter a room name and password to join or create a room.</p>';
 }
 
 // Send Message
@@ -512,12 +504,12 @@ function renderMessages(messages) {
         }
 
         msgDiv.innerHTML = `
-            <div class="message-header">
-                <span class="message-sender">${msg.sender}${isOwnMessage ? ' (You)' : ''}</span>
-                <span class="message-time">${time}</span>
-            </div>
-            <div class="message-text">${msg.text}</div>
-        `;
+        <div class="message-header">
+            <span class="message-sender">${msg.sender}${isOwnMessage ? ' (You)' : ''}</span>
+            <span class="message-time">${time}</span>
+        </div>
+        <div class="message-text">${msg.text}</div>
+    `;
 
         messagesList.appendChild(msgDiv);
     });
