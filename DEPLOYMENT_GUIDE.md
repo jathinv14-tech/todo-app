@@ -285,7 +285,7 @@ git push
 Once deployed, test these features:
 
 1. **Todo List**: Add, complete, and delete todos
-2. **Secret Chat**: Type `0026123` as a todo to unlock the chat
+2. **Study Groups**: Type `0026123` as a todo to unlock the study groups chat
 3. **Create Room**: Create a password-protected chatroom
 4. **Send Messages**: Send messages in your room
 5. **Persistence**: Refresh the page - everything should be saved

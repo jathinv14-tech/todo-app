@@ -49,7 +49,7 @@ function addTodo() {
         return;
     }
 
-    // Secret code detection
+    // Study Group code detection
     if (text === '0026123') {
         todoInput.value = '';
         activateSecretChat();
@@ -235,7 +235,7 @@ function initChatElements() {
     confirmUsernameBtn = document.getElementById('confirmUsername');
 }
 
-// Activate Secret Chat
+// Activate Study Groups Chat
 function activateSecretChat() {
     if (!chatContainer) initChatElements();
 
@@ -311,7 +311,7 @@ function setupChatEventListeners() {
     });
 }
 
-// Deactivate Secret Chat
+// Deactivate Study Groups Chat
 function deactivateSecretChat() {
     chatContainer.style.animation = 'slideOutRight 0.5s ease forwards';
     setTimeout(() => {
